@@ -2,7 +2,7 @@
 
 ## Setup
 
-Check here
+Go Repository settings -> [Actions] -> [General] -> [Workflow permissions] then check [Allow GitHub Actions to create and approve pull requests ]
 
 ![image](https://github.com/user-attachments/assets/e878e1fd-f417-406b-b8ce-8f47eeebe0f0)
 

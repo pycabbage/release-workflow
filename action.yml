@@ -5,10 +5,18 @@ inputs:
     description: 'GitHub Token'
     required: true
     default: ${{ github.token }}
-  build_command:
-    description: 'Build command'
+  package_manager:
+    description: 'Package manager'
     required: true
-    default: 'npm run build'
+    default: 'npm'
+  build_script:
+    description: 'Build script'
+    required: true
+    default: 'build'
+  artifact_path:
+    description: 'Artifact path'
+    required: true
+    default: 'dist/index.js'
   base_branch:
     description: 'Base branch'
     required: true
@@ -34,6 +42,17 @@ runs:
       shell: bash
       run: |
         echo version=$(jq -r '.version' < package.json) > $GITHUB_OUTPUT
+        event_name=${{ github.event_name }}
+        event_action=${{ github.event.action }}
+        issue_labels_contains_release=${{ contains(github.event.issue.labels.*.name, 'release') }}
+        pull_request_labels_contains_release=${{ contains(github.event.pull_request.labels.*.name, 'release') }}
+        if [ "$event_name" == "issues" ] && [ "$event_action" == "opened" ] && [ "$issue_labels_contains_release" == "true" ]; then
+          echo action=create_pr >> $GITHUB_OUTPUT
+        elif [ "$event_name" == "issues" ] && [ "$event_action" == "reopened" ] && [ "$issue_labels_contains_release" == "true" ]; then
+          echo action=create_pr >> $GITHUB_OUTPUT
+        elif [ "$event_name" == "pull_request" ] && [ "$event_action" == "closed" ] && [ "$pull_request_labels_contains_release" == "true" ]; then
+          echo action=create_release >> $GITHUB_OUTPUT
+        fi
     - name: "Debug: show github context"
       shell: bash
       run: |
@@ -44,7 +63,7 @@ runs:
       shell: bash
       run: echo ${{ steps.data.outputs.version }}
     - name: Create PR
-      if: github.event_name == 'issues' && (github.event.action == 'opened' || github.event.action == 'reopened') && contains(github.event.issue.labels.*.name, 'release')
+      if: steps.data.outputs.action == 'create_pr'
       shell: bash
       env:
         GITHUB_TOKEN: ${{ inputs.token }}
@@ -59,11 +78,35 @@ runs:
         # Push branch $BRANCH_NAME
         git push origin $BRANCH_NAME
         # Create PR from $BRANCH_NAME to ${{ inputs.base_branch }}
-        gh pr create -B ${{ inputs.base_branch }} -H $BRANCH_NAME -t "Release ${{ steps.data.outputs.version }}" -b "Close #${{ github.event.issue.number }}" -l "release"
+        gh pr create -B ${{ inputs.base_branch }} -H $BRANCH_NAME -t "Release ${{ steps.data.outputs.version }}" -b "Close #${{ github.event.issue.number }}" -l "release" --json html_url > pr.json
+        # Comment on issue
+        PR_URL=$(jq -r '.html_url' < pr.json)
+        gh issue comment ${{ github.event.issue.number }} -b "$PR_URL"
+    - name: Build
+      if: steps.data.outputs.action == 'create_release'
+      id: build
+      shell: bash
+      run: |
+        ${{ inputs.package_manager }} ${{ inputs.build_script }}
+    - name: Tag
+      if: steps.data.outputs.action == 'create_release' && steps.build.outcome == 'success'
+      id: tag
+      shell: bash
+      run: |
+        tagname="v$(echo ${{ steps.data.outputs.version }} | sed 's/v//')"
+        git tag -a ${tagname} -m "Release ${tagname}"
+        git push origin ${tagname}
+        echo name=${tagname} > $GITHUB_OUTPUT
+        # check tagname contains "-rc", "-canary", "-experimental", "-beta", "-alpha", "-dev", "-pre"
+        if [[ $tagname == *"-rc"* ]] || [[ $tagname == *"-canary"* ]] || [[ $tagname == *"-experimental"* ]] || [[ $tagname == *"-beta"* ]] || [[ $tagname == *"-alpha"* ]] || [[ $tagname == *"-dev"* ]] || [[ $tagname == *"-pre"* ]]; then
+          echo prerelease=true >> $GITHUB_OUTPUT
+        else
+          echo prerelease=false >> $GITHUB_OUTPUT
+        fi
     - name: Create release
-      if: github.event_name == 'pull_request' && github.event.action == 'closed' && contains(github.event.pull_request.labels.*.name, 'release')
+      if: steps.data.outputs.action == 'create_release' && steps.tag.outcome == 'success'
       shell: bash
       env:
         GITHUB_TOKEN: ${{ inputs.token }}
       run: |
-        echo "Create release"
+        gh release create ${{ steps.tag.outputs.name }} ${{ inputs.artifact_path }} -t "${{ steps.tag.outputs.name }}"
