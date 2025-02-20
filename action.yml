@@ -5,10 +5,22 @@ inputs:
     description: 'GitHub Token'
     required: true
     default: ${{ github.token }}
-# outputs:
-#   random-number:
-#     description: "Random number"
-#     value: ${{ steps.random-number-generator.outputs.random-number }}
+  build_command:
+    description: 'Build command'
+    required: true
+    default: 'npm run build'
+  base_branch:
+    description: 'Base branch'
+    required: true
+    default: 'main'
+  head_branch:
+    description: 'Head branch'
+    required: true
+    default: 'develop'
+  release_branch_prefix:
+    description: 'Release branch prefix'
+    required: true
+    default: 'release/'
 
 branding:
   icon: tag
@@ -17,10 +29,35 @@ branding:
 runs:
   using: composite
   steps:
-    - name: Get package.json
-      id: package
+    - name: Check repository
+      id: data
       shell: bash
-      run: echo version=$(jq -r '.version' < package.json) > $GITHUB_OUTPUT
+      run: |
+        echo version=$(jq -r '.version' < package.json) > $GITHUB_OUTPUT
     - name: Show version
       shell: bash
-      run: echo ${{ steps.package.outputs.version }}
+      run: echo ${{ steps.data.outputs.version }}
+    - name: Create PR
+      if: github.event_name == "issues" && github.event.action == "opened" && contains(github.event.issue.labels.*.name, 'release')
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        BRANCH_NAME="${{ inputs.release_branch_prefix }}${{ steps.data.outputs.version }}"
+        # Create branch $BRANCH_NAME from ${{ inputs.head_branch }}
+        git switch -c $BRANCH_NAME ${{ inputs.head_branch }}
+        # Push branch $BRANCH_NAME
+        git push origin $BRANCH_NAME
+        # Create PR from $BRANCH_NAME to ${{ inputs.base_branch }}
+        gh pr create -B ${{ inputs.base_branch }} -H $BRANCH_NAME -t "Release ${{ steps.data.outputs.version }}" -b "Close #${{ github.event.issue.number }}" -l "release"
+    - name: Create release
+      if: github.event_name == "pull_request" && github.event.action == "closed" && contains(github.event.pull_request.labels.*.name, 'release')
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
+      run: |
+        echo "Create release"
+
+
