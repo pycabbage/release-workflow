@@ -15,6 +15,10 @@ on:
 
 jobs:
   workflow1:
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

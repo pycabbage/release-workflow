@@ -1,5 +1,5 @@
-name: Build & Release
-description: Build and release the project
+name: Build & Release Userscript
+description: Build and release userscript
 inputs:
   token:
     description: 'GitHub Token'
