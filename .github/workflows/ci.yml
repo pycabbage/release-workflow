@@ -20,4 +20,4 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: pycabbage/release-workflow@main
+      - uses: pycabbage/release-workflow@develop
