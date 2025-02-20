@@ -40,7 +40,7 @@ runs:
       shell: bash
       run: echo ${{ steps.data.outputs.version }}
     - name: Create PR
-      if: github.event_name == 'issues' && github.event.action == 'opened' && contains(github.event.issue.labels.*.name, 'release')
+      if: github.event_name == 'issues' && (github.event.action == 'opened' || github.event.action == 'reopened') && contains(github.event.issue.labels.*.name, 'release')
       shell: bash
       env:
         GITHUB_TOKEN: ${{ inputs.token }}
