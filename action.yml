@@ -38,7 +38,7 @@ runs:
       shell: bash
       run: echo ${{ steps.data.outputs.version }}
     - name: Create PR
-      if: github.event_name == "issues" && github.event.action == "opened" && contains(github.event.issue.labels.*.name, 'release')
+      if: github.event_name == 'issues' && github.event.action == 'opened' && contains(github.event.issue.labels.*.name, 'release')
       shell: bash
       env:
         GITHUB_TOKEN: ${{ inputs.token }}
@@ -53,7 +53,7 @@ runs:
         # Create PR from $BRANCH_NAME to ${{ inputs.base_branch }}
         gh pr create -B ${{ inputs.base_branch }} -H $BRANCH_NAME -t "Release ${{ steps.data.outputs.version }}" -b "Close #${{ github.event.issue.number }}" -l "release"
     - name: Create release
-      if: github.event_name == "pull_request" && github.event.action == "closed" && contains(github.event.pull_request.labels.*.name, 'release')
+      if: github.event_name == 'pull_request' && github.event.action == 'closed' && contains(github.event.pull_request.labels.*.name, 'release')
       shell: bash
       env:
         GITHUB_TOKEN: ${{ inputs.token }}
