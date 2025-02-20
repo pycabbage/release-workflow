@@ -2,12 +2,21 @@ name: test
 
 on:
   push:
+    branches:
+      - main
+      - develop
   pull_request:
+    types:
+      - closed
   issues:
+    types:
+      - opened
 
 jobs:
   workflow1:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: pycabbage/release-workflow@main
