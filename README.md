@@ -1,5 +1,13 @@
 # release-workflow
 
+## Setup
+
+Check here
+
+![image](https://github.com/user-attachments/assets/e878e1fd-f417-406b-b8ce-8f47eeebe0f0)
+
+## Overview
+
 ```mermaid
 ---
 config:
