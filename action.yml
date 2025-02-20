@@ -34,6 +34,8 @@ runs:
       shell: bash
       run: |
         echo version=$(jq -r '.version' < package.json) > $GITHUB_OUTPUT
+        # show github context
+        env | grep GITHUB
     - name: Show version
       shell: bash
       run: echo ${{ steps.data.outputs.version }}
