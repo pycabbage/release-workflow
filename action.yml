@@ -43,6 +43,8 @@ runs:
       env:
         GITHUB_TOKEN: ${{ inputs.token }}
       run: |
+        pwd
+        git branch
         git config --global user.name "github-actions[bot]"
         git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
         BRANCH_NAME="${{ inputs.release_branch_prefix }}${{ steps.data.outputs.version }}"
@@ -59,5 +61,3 @@ runs:
         GITHUB_TOKEN: ${{ inputs.token }}
       run: |
         echo "Create release"
-
-
