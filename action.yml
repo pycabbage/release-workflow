@@ -1,0 +1,26 @@
+name: Build & Release
+description: Build and release the project
+inputs:
+  token:
+    description: 'GitHub Token'
+    required: true
+    default: ${{ secrets.GITHUB_TOKEN }}
+# outputs:
+#   random-number:
+#     description: "Random number"
+#     value: ${{ steps.random-number-generator.outputs.random-number }}
+
+branding:
+  icon: tag
+  color: blue
+
+runs:
+  using: composite
+  steps:
+    - name: Get package.json
+      id: package
+      shell: bash
+      run: echo version=$(jq -r '.version' < package.json) > $GITHUB_OUTPUT
+    - name: Show version
+      shell: bash
+      run: echo ${{ steps.package.outputs.version }}
